@@ -1,0 +1,6 @@
+.idea/
+.gradle
+classes/
+build/
+gradle/
+.DS_Store
