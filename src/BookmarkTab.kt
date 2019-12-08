@@ -1,5 +1,6 @@
 package burp
 
+import java.awt.FlowLayout
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 import java.net.URL
@@ -7,7 +8,6 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.swing.*
 import javax.swing.table.AbstractTableModel
-
 
 class BookmarkTab(callbacks: IBurpExtenderCallbacks) : ITab {
     val bookmarkTable = BookmarksPanel(callbacks)
@@ -30,14 +30,18 @@ data class Bookmark(
     val file: String
 )
 
-class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) : IMessageEditorController {
+class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
     val model = BookmarksModel()
     val table = JTable(model)
-    private val requestViewer: IMessageEditor
-    private val responseViewer: IMessageEditor
-    private var currentlyDisplayedItem: IHttpRequestResponse? = null
+
+    private val messageEditor = MessageEditor(callbacks)
+    private val requestViewer: IMessageEditor? = messageEditor.requestViewer
+    private val responseViewer: IMessageEditor? = messageEditor.responseViewer
+
     val panel = JSplitPane(JSplitPane.VERTICAL_SPLIT)
     private val bookmarks = model.bookmarks
+
+    private val repeatInTable = JCheckBox("Add repeated request to table")
 
     init {
         BookmarkActions(this, bookmarks, callbacks)
@@ -45,63 +49,82 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) : IMessageEd
         table.columnModel.getColumn(0).preferredWidth = 30 // ID
         table.columnModel.getColumn(1).preferredWidth = 150 // date
         table.columnModel.getColumn(2).preferredWidth = 150 // host
-        table.columnModel.getColumn(3).preferredWidth = 600 // url
+        table.columnModel.getColumn(3).preferredWidth = 500 // url
         table.columnModel.getColumn(4).preferredWidth = 80 // method
         table.columnModel.getColumn(5).preferredWidth = 60 // status
-        table.columnModel.getColumn(6).preferredWidth = 200 // title
-        table.columnModel.getColumn(7).preferredWidth = 80 // mime
-        table.columnModel.getColumn(8).preferredWidth = 80 // protocol
+        table.columnModel.getColumn(6).preferredWidth = 120 // title
+        table.columnModel.getColumn(7).preferredWidth = 70 // mime
+        table.columnModel.getColumn(8).preferredWidth = 70 // protocol
         table.columnModel.getColumn(9).preferredWidth = 100 // file
-
-        requestViewer = callbacks.createMessageEditor(this, false)
-        responseViewer = callbacks.createMessageEditor(this, false)
 
         table.selectionModel.addListSelectionListener {
             val requestResponse = bookmarks[table.selectedRow].requestResponse
-            currentlyDisplayedItem = requestResponse
-            requestViewer.setMessage(requestResponse.request, true)
-            responseViewer.setMessage(requestResponse.response, false)
+            messageEditor.requestResponse = requestResponse
+            requestViewer?.setMessage(requestResponse.request, true)
+            responseViewer?.setMessage(requestResponse.response, false)
         }
+
+        val repeatPanel = JPanel(FlowLayout(FlowLayout.LEFT))
+
+        val repeatButton = JButton("Repeat Request")
+        repeatButton.addActionListener {
+            repeatRequest()
+            repeatButton.isFocusPainted = false
+        }
+
+        repeatInTable.isSelected = true
+
+        repeatPanel.add(repeatButton)
+        repeatPanel.add(repeatInTable)
 
         val bookmarksTable = JScrollPane(table)
         val reqResSplit =
-            JSplitPane(JSplitPane.HORIZONTAL_SPLIT, requestViewer.component, responseViewer.component)
+            JSplitPane(JSplitPane.HORIZONTAL_SPLIT, requestViewer?.component, responseViewer?.component)
         reqResSplit.resizeWeight = 0.5
+
+        val repeatReqSplit =
+            JSplitPane(JSplitPane.VERTICAL_SPLIT, repeatPanel, reqResSplit)
+
         panel.topComponent = bookmarksTable
-        panel.bottomComponent = reqResSplit
+        panel.bottomComponent = repeatReqSplit
+        callbacks.customizeUiComponent(panel)
     }
 
     fun addBookmark(requestsResponses: Array<IHttpRequestResponse>) {
         for (requestResponse in requestsResponses) {
-            val now = LocalDateTime.now()
-            val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-            val dateTime = now.format(dateFormatter) ?: ""
-            val requestInfo = callbacks.helpers.analyzeRequest(requestResponse)
-            val responseInfo = callbacks.helpers.analyzeResponse(requestResponse.response)
-            val host = requestInfo.url.host ?: ""
-            val url = requestInfo.url
-            val method = requestInfo.method ?: ""
-            val statusCode = responseInfo.statusCode.toInt()
-            val title = getTitle(requestResponse.response)
-            val mimeType = responseInfo.inferredMimeType ?: ""
-            val protocol = requestInfo.url.protocol
-            val file = requestInfo.url.file
-            val bookmark = Bookmark(
-                requestResponse,
-                dateTime,
-                host,
-                url,
-                method,
-                statusCode,
-                title,
-                mimeType,
-                protocol,
-                file
-            )
-            model.addBookmark(bookmark)
-            requestResponse.highlight = "magenta"
-            requestResponse.comment = "[^]"
+            createBookmark(requestResponse)
         }
+    }
+
+    private fun createBookmark(requestResponse: IHttpRequestResponse) {
+        val now = LocalDateTime.now()
+        val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        val dateTime = now.format(dateFormatter) ?: ""
+        val requestInfo = callbacks.helpers.analyzeRequest(requestResponse)
+        val responseInfo = callbacks.helpers.analyzeResponse(requestResponse.response)
+        val host = requestInfo.url.host ?: ""
+        val url = requestInfo.url
+        val method = requestInfo.method ?: ""
+        val statusCode = responseInfo.statusCode.toInt()
+        val title = getTitle(requestResponse.response)
+        val mimeType = responseInfo.inferredMimeType ?: ""
+        val protocol = requestInfo.url.protocol
+        val file = requestInfo.url.file
+        val bookmark = Bookmark(
+            requestResponse,
+            dateTime,
+            host,
+            url,
+            method,
+            statusCode,
+            title,
+            mimeType,
+            protocol,
+            file
+        )
+        model.addBookmark(bookmark)
+        requestResponse.highlight = "magenta"
+        requestResponse.comment = "[^]"
     }
 
     private fun getTitle(response: ByteArray): String {
@@ -115,11 +138,30 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) : IMessageEd
         return parsedTitle
     }
 
-    override fun getResponse(): ByteArray? = currentlyDisplayedItem?.response
 
-    override fun getRequest(): ByteArray? = currentlyDisplayedItem?.request
+    private fun repeatRequest() {
+        Thread {
+            callbacks.stdout.write("pushed".toByteArray())
+            val requestResponse = callbacks.makeHttpRequest(messageEditor.httpService, requestViewer?.message)
+            responseViewer?.setMessage(requestResponse.response, false)
+            if (repeatInTable.isSelected) {
+                createBookmark(requestResponse)
+            }
+        }.start()
+    }
+}
 
-    override fun getHttpService(): IHttpService? = currentlyDisplayedItem?.httpService
+class MessageEditor(callbacks: IBurpExtenderCallbacks) : IMessageEditorController {
+    var requestResponse: IHttpRequestResponse? = null
+
+    val requestViewer: IMessageEditor? = callbacks.createMessageEditor(this, true)
+    val responseViewer: IMessageEditor? = callbacks.createMessageEditor(this, false)
+
+    override fun getResponse(): ByteArray? = requestResponse?.response
+
+    override fun getRequest(): ByteArray? = requestResponse?.request
+
+    override fun getHttpService(): IHttpService? = requestResponse?.httpService
 }
 
 class BookmarksModel : AbstractTableModel() {
