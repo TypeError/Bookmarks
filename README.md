@@ -2,11 +2,11 @@
 
 A simple Burp Suite extension to *bookmark* requests for later, instead of those 100 unnamed repeater tabs you've got open. 
 
-Extender requires [Burp Suite](https://portswigger.net/burp) and works in the Community or Professional versions. 
+Extender requires [Burp Suite](https://portswigger.net/burp) and works in both the Community (Free) and Professional versions. 
 
 #### Features:
 * Save requests to table
-* Repeat requests from tab
+* Repeat requests directly from `[^]` tab (and save to table)
 * Highlight bookmarked requests in Proxy History
 * Send to Repeater with tabs labeled with response titles
 
@@ -33,15 +33,15 @@ Extension JAR will be located at: `build/libs/bookmarks.jar`
 3. Requests will be added to the `[^]` tab.
 
 #### Repeat requests
-1. Edit request
-2. Click the `Repeat Request`
-3. Response will be updated
+1. Edit request (left)
+2. Click the `Repeat Request` button
+3. Response (right) will be updated
 
 *If the `Add repeated request to table` checkbox is checked, requests will be added to the table*
 
 
 ## Changelog
-### v0.2 - 2019-12-08
+### v0.2 - 2019-12-09
 1. Enable the ability to repeat requests in tab
 
 ### v0.1 - 2019-12-07

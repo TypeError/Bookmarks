@@ -1,6 +1,9 @@
 package burp
 
 import java.awt.FlowLayout
+import java.awt.Toolkit
+import java.awt.datatransfer.Clipboard
+import java.awt.datatransfer.StringSelection
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 import java.net.URL
@@ -8,6 +11,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.swing.*
 import javax.swing.table.AbstractTableModel
+
 
 class BookmarkTab(callbacks: IBurpExtenderCallbacks) : ITab {
     val bookmarkTable = BookmarksPanel(callbacks)
@@ -27,7 +31,9 @@ data class Bookmark(
     val title: String,
     val mimeType: String,
     val protocol: String,
-    val file: String
+    val file: String,
+    val parameters: String,
+    val repeated: Boolean
 )
 
 class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
@@ -47,15 +53,17 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         BookmarkActions(this, bookmarks, callbacks)
         table.autoResizeMode = JTable.AUTO_RESIZE_OFF
         table.columnModel.getColumn(0).preferredWidth = 30 // ID
-        table.columnModel.getColumn(1).preferredWidth = 150 // date
-        table.columnModel.getColumn(2).preferredWidth = 150 // host
-        table.columnModel.getColumn(3).preferredWidth = 500 // url
-        table.columnModel.getColumn(4).preferredWidth = 80 // method
-        table.columnModel.getColumn(5).preferredWidth = 60 // status
-        table.columnModel.getColumn(6).preferredWidth = 120 // title
-        table.columnModel.getColumn(7).preferredWidth = 70 // mime
-        table.columnModel.getColumn(8).preferredWidth = 70 // protocol
-        table.columnModel.getColumn(9).preferredWidth = 100 // file
+        table.columnModel.getColumn(1).preferredWidth = 145 // date
+        table.columnModel.getColumn(2).preferredWidth = 130 // host
+        table.columnModel.getColumn(3).preferredWidth = 400 // url
+        table.columnModel.getColumn(4).preferredWidth = 110 // title
+        table.columnModel.getColumn(5).preferredWidth = 60 // repeated
+        table.columnModel.getColumn(6).preferredWidth = 60 // method
+        table.columnModel.getColumn(7).preferredWidth = 60 // status
+        table.columnModel.getColumn(8).preferredWidth = 130 // parameters
+        table.columnModel.getColumn(9).preferredWidth = 50 // mime
+        table.columnModel.getColumn(10).preferredWidth = 50 // protocol
+        table.columnModel.getColumn(11).preferredWidth = 80 // file
 
         table.selectionModel.addListSelectionListener {
             val requestResponse = bookmarks[table.selectedRow].requestResponse
@@ -92,11 +100,11 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
 
     fun addBookmark(requestsResponses: Array<IHttpRequestResponse>) {
         for (requestResponse in requestsResponses) {
-            createBookmark(requestResponse)
+            createBookmark(requestResponse, false)
         }
     }
 
-    private fun createBookmark(requestResponse: IHttpRequestResponse) {
+    private fun createBookmark(requestResponse: IHttpRequestResponse, repeated: Boolean = false) {
         val now = LocalDateTime.now()
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         val dateTime = now.format(dateFormatter) ?: ""
@@ -110,6 +118,7 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         val mimeType = responseInfo.inferredMimeType ?: ""
         val protocol = requestInfo.url.protocol
         val file = requestInfo.url.file
+        val parameters = requestInfo.parameters.joinToString(separator = ", ", limit = 5) { "${it.name}=${it.value}" }
         val bookmark = Bookmark(
             requestResponse,
             dateTime,
@@ -120,7 +129,9 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
             title,
             mimeType,
             protocol,
-            file
+            file,
+            parameters,
+            repeated
         )
         model.addBookmark(bookmark)
         requestResponse.highlight = "magenta"
@@ -131,21 +142,16 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         val html = callbacks.helpers.bytesToString(response)
         val titleRegex = "<title>(.*?)</title>".toRegex()
         val title = titleRegex.find(html)?.value ?: ""
-        val parsedTitle = title.removePrefix("<title>").removeSuffix("</title>")
-        if (parsedTitle.length > 15) {
-            return parsedTitle.substring(0, 14) + "+"
-        }
-        return parsedTitle
+        return title.removePrefix("<title>").removeSuffix("</title>")
     }
 
 
     private fun repeatRequest() {
         Thread {
-            callbacks.stdout.write("pushed".toByteArray())
             val requestResponse = callbacks.makeHttpRequest(messageEditor.httpService, requestViewer?.message)
             responseViewer?.setMessage(requestResponse.response, false)
             if (repeatInTable.isSelected) {
-                createBookmark(requestResponse)
+                createBookmark(requestResponse, true)
             }
         }.start()
     }
@@ -166,7 +172,20 @@ class MessageEditor(callbacks: IBurpExtenderCallbacks) : IMessageEditorControlle
 
 class BookmarksModel : AbstractTableModel() {
     private val columns =
-        listOf("ID", "Datetime", "Host", "URL", "Method", "Status", "Title", "MIME", "Protocol", "File")
+        listOf(
+            "ID",
+            "Added",
+            "Host",
+            "URL",
+            "Title",
+            "Repeated",
+            "Method",
+            "Status",
+            "Parameters",
+            "MIME",
+            "Protocol",
+            "File"
+        )
     var bookmarks: MutableList<Bookmark> = ArrayList()
 
     override fun getRowCount(): Int = bookmarks.size
@@ -184,11 +203,13 @@ class BookmarksModel : AbstractTableModel() {
             2 -> String::class.java
             3 -> String::class.java
             4 -> String::class.java
-            5 -> java.lang.Integer::class.java
+            5 -> java.lang.Boolean::class.java
             6 -> String::class.java
-            7 -> String::class.java
+            7 -> java.lang.Integer::class.java
             8 -> String::class.java
             9 -> String::class.java
+            10 -> String::class.java
+            11 -> String::class.java
             else -> throw RuntimeException()
         }
     }
@@ -201,12 +222,14 @@ class BookmarksModel : AbstractTableModel() {
             1 -> bookmark.dateTime
             2 -> bookmark.host
             3 -> bookmark.url.toString()
-            4 -> bookmark.method
-            5 -> bookmark.statusCode
-            6 -> bookmark.title
-            7 -> bookmark.mimeType
-            8 -> bookmark.protocol
-            9 -> bookmark.file
+            4 -> bookmark.title
+            5 -> bookmark.repeated
+            6 -> bookmark.method
+            7 -> bookmark.statusCode
+            8 -> bookmark.parameters
+            9 -> bookmark.mimeType
+            10 -> bookmark.protocol
+            11 -> bookmark.file
             else -> ""
         }
     }
@@ -237,6 +260,7 @@ class BookmarkActions(
     private val bookmarksActions = JPopupMenu()
     private val sendToRepeater = JMenuItem("Send request(s) to Repeater")
     private val sendToIntruder = JMenuItem("Send request(s) to Intruder")
+    private val copyURLs = JMenuItem("Copy URL(s)")
     private val deleteBookmarks = JMenuItem("Delete bookmark(s)")
     private val clearBookmarks = JMenuItem("Clear bookmarks")
 
@@ -244,10 +268,13 @@ class BookmarkActions(
     init {
         sendToRepeater.addActionListener(this)
         sendToIntruder.addActionListener(this)
+        copyURLs.addActionListener(this)
         deleteBookmarks.addActionListener(this)
         clearBookmarks.addActionListener(this)
         bookmarksActions.add(sendToRepeater)
         bookmarksActions.add(sendToIntruder)
+        bookmarksActions.add(copyURLs)
+        bookmarksActions.addSeparator()
         bookmarksActions.add(deleteBookmarks)
         bookmarksActions.add(clearBookmarks)
         panel.table.componentPopupMenu = bookmarksActions
@@ -264,18 +291,29 @@ class BookmarkActions(
             clearBookmarks -> {
                 panel.model.clearBookmarks()
             }
+            copyURLs -> {
+                val urls = selectedBookmarks.map { it.url }.joinToString()
+                val clipboard: Clipboard = Toolkit.getDefaultToolkit().systemClipboard
+                clipboard.setContents(StringSelection(urls), null)
+            }
             else -> {
                 for (selectedBookmark in selectedBookmarks) {
                     val https = useHTTPs(selectedBookmark)
                     val url = selectedBookmark.url
                     when (source) {
                         sendToRepeater -> {
+                            var title = selectedBookmark.title
+                            if (title.length > 10) {
+                                title = title.substring(0, 9) + "+"
+                            } else if (title.isBlank()) {
+                                title = "[^](${bookmarks.indexOf(selectedBookmark)}"
+                            }
                             callbacks.sendToRepeater(
                                 url.host,
                                 url.port,
                                 https,
                                 selectedBookmark.requestResponse.request,
-                                "${selectedBookmark.title}[^](${bookmarks.indexOf(selectedBookmark)})"
+                                title
                             )
                         }
                         sendToIntruder -> {
