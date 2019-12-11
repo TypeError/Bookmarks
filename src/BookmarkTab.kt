@@ -1,17 +1,11 @@
 package burp
 
 import java.awt.FlowLayout
-import java.awt.Toolkit
-import java.awt.datatransfer.Clipboard
-import java.awt.datatransfer.StringSelection
-import java.awt.event.ActionEvent
-import java.awt.event.ActionListener
 import java.net.URL
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.swing.*
 import javax.swing.table.AbstractTableModel
-
 
 class BookmarkTab(callbacks: IBurpExtenderCallbacks) : ITab {
     val bookmarkTable = BookmarksPanel(callbacks)
@@ -27,7 +21,7 @@ data class Bookmark(
     val host: String,
     val url: URL,
     val method: String,
-    val statusCode: Int,
+    val statusCode: String,
     val title: String,
     val mimeType: String,
     val protocol: String,
@@ -51,6 +45,7 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
 
     init {
         BookmarkActions(this, bookmarks, callbacks)
+        val bookmarkOptons = BookmarkOptions()
         table.autoResizeMode = JTable.AUTO_RESIZE_OFF
         table.columnModel.getColumn(0).preferredWidth = 30 // ID
         table.columnModel.getColumn(1).preferredWidth = 145 // date
@@ -69,7 +64,7 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
             val requestResponse = bookmarks[table.selectedRow].requestResponse
             messageEditor.requestResponse = requestResponse
             requestViewer?.setMessage(requestResponse.request, true)
-            responseViewer?.setMessage(requestResponse.response, false)
+            responseViewer?.setMessage(requestResponse.response ?: ByteArray(0), false)
         }
 
         val repeatPanel = JPanel(FlowLayout(FlowLayout.LEFT))
@@ -93,7 +88,10 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         val repeatReqSplit =
             JSplitPane(JSplitPane.VERTICAL_SPLIT, repeatPanel, reqResSplit)
 
-        panel.topComponent = bookmarksTable
+        val bookmarksOptSplit =
+            JSplitPane(JSplitPane.VERTICAL_SPLIT, bookmarkOptons.panel, bookmarksTable)
+
+        panel.topComponent = bookmarksOptSplit
         panel.bottomComponent = repeatReqSplit
         callbacks.customizeUiComponent(panel)
     }
@@ -109,13 +107,16 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         val dateTime = now.format(dateFormatter) ?: ""
         val requestInfo = callbacks.helpers.analyzeRequest(requestResponse)
-        val responseInfo = callbacks.helpers.analyzeResponse(requestResponse.response)
+        var response: IResponseInfo? = null
+        requestResponse.response?.let {
+            response = callbacks.helpers.analyzeResponse(requestResponse.response)
+        }
         val host = requestInfo.url.host ?: ""
         val url = requestInfo.url
         val method = requestInfo.method ?: ""
-        val statusCode = responseInfo.statusCode.toInt()
+        val statusCode = response?.statusCode?.toString() ?: ""
         val title = getTitle(requestResponse.response)
-        val mimeType = responseInfo.inferredMimeType ?: ""
+        val mimeType = response?.inferredMimeType ?: ""
         val protocol = requestInfo.url.protocol
         val file = requestInfo.url.file
         val parameters = requestInfo.parameters.joinToString(separator = ", ", limit = 5) { "${it.name}=${it.value}" }
@@ -138,7 +139,8 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         requestResponse.comment = "[^]"
     }
 
-    private fun getTitle(response: ByteArray): String {
+    private fun getTitle(response: ByteArray?): String {
+        if (response == null) return ""
         val html = callbacks.helpers.bytesToString(response)
         val titleRegex = "<title>(.*?)</title>".toRegex()
         val title = titleRegex.find(html)?.value ?: ""
@@ -163,7 +165,7 @@ class MessageEditor(callbacks: IBurpExtenderCallbacks) : IMessageEditorControlle
     val requestViewer: IMessageEditor? = callbacks.createMessageEditor(this, true)
     val responseViewer: IMessageEditor? = callbacks.createMessageEditor(this, false)
 
-    override fun getResponse(): ByteArray? = requestResponse?.response
+    override fun getResponse(): ByteArray? = requestResponse?.response ?: ByteArray(0)
 
     override fun getRequest(): ByteArray? = requestResponse?.request
 
@@ -205,7 +207,7 @@ class BookmarksModel : AbstractTableModel() {
             4 -> String::class.java
             5 -> java.lang.Boolean::class.java
             6 -> String::class.java
-            7 -> java.lang.Integer::class.java
+            7 -> String::class.java
             8 -> String::class.java
             9 -> String::class.java
             10 -> String::class.java
@@ -251,94 +253,4 @@ class BookmarksModel : AbstractTableModel() {
     }
 }
 
-class BookmarkActions(
-    private val panel: BookmarksPanel,
-    private val bookmarks: MutableList<Bookmark>,
-    private val callbacks: IBurpExtenderCallbacks
-) : ActionListener {
-    private val table = panel.table
-    private val bookmarksActions = JPopupMenu()
-    private val sendToRepeater = JMenuItem("Send request(s) to Repeater")
-    private val sendToIntruder = JMenuItem("Send request(s) to Intruder")
-    private val copyURLs = JMenuItem("Copy URL(s)")
-    private val deleteBookmarks = JMenuItem("Delete bookmark(s)")
-    private val clearBookmarks = JMenuItem("Clear bookmarks")
 
-
-    init {
-        sendToRepeater.addActionListener(this)
-        sendToIntruder.addActionListener(this)
-        copyURLs.addActionListener(this)
-        deleteBookmarks.addActionListener(this)
-        clearBookmarks.addActionListener(this)
-        bookmarksActions.add(sendToRepeater)
-        bookmarksActions.add(sendToIntruder)
-        bookmarksActions.add(copyURLs)
-        bookmarksActions.addSeparator()
-        bookmarksActions.add(deleteBookmarks)
-        bookmarksActions.add(clearBookmarks)
-        panel.table.componentPopupMenu = bookmarksActions
-    }
-
-
-    override fun actionPerformed(e: ActionEvent?) {
-        if (table.selectedRow == -1) return
-        val selectedBookmarks = getSelectedBookmarks()
-        when (val source = e?.source) {
-            deleteBookmarks -> {
-                panel.model.removeBookmarks(selectedBookmarks)
-            }
-            clearBookmarks -> {
-                panel.model.clearBookmarks()
-            }
-            copyURLs -> {
-                val urls = selectedBookmarks.map { it.url }.joinToString()
-                val clipboard: Clipboard = Toolkit.getDefaultToolkit().systemClipboard
-                clipboard.setContents(StringSelection(urls), null)
-            }
-            else -> {
-                for (selectedBookmark in selectedBookmarks) {
-                    val https = useHTTPs(selectedBookmark)
-                    val url = selectedBookmark.url
-                    when (source) {
-                        sendToRepeater -> {
-                            var title = selectedBookmark.title
-                            if (title.length > 10) {
-                                title = title.substring(0, 9) + "+"
-                            } else if (title.isBlank()) {
-                                title = "[^](${bookmarks.indexOf(selectedBookmark)}"
-                            }
-                            callbacks.sendToRepeater(
-                                url.host,
-                                url.port,
-                                https,
-                                selectedBookmark.requestResponse.request,
-                                title
-                            )
-                        }
-                        sendToIntruder -> {
-                            callbacks.sendToIntruder(
-                                url.host, url.port, https,
-                                selectedBookmark.requestResponse.request, null
-                            )
-                        }
-                    }
-
-                }
-            }
-        }
-    }
-
-    private fun getSelectedBookmarks(): MutableList<Bookmark> {
-        val selectedBookmarks: MutableList<Bookmark> = ArrayList()
-        for (index in table.selectedRows) {
-            selectedBookmarks.add(bookmarks[index])
-        }
-        return selectedBookmarks
-    }
-
-    private fun useHTTPs(bookmark: Bookmark): Boolean {
-        return (bookmark.url.protocol.toLowerCase() == "https")
-
-    }
-}
