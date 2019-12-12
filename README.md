@@ -9,6 +9,8 @@ Extender requires [Burp Suite](https://portswigger.net/burp) and works in both t
 * Repeat requests directly from `[^]` tab (and save to table)
 * Highlight bookmarked requests in Proxy History
 * Send to Repeater with tabs labeled with response titles
+* Load highlighted requests from Proxy History
+* Search bookmarks
 
 ## Install the Bookmarks Burp Suite Extension
 ### Build the extension
@@ -41,6 +43,10 @@ Extension JAR will be located at: `build/libs/bookmarks.jar`
 
 
 ## Changelog
+### v0.3 - 2019-12-12
+1. Import highlighted proxy history
+2. Search bookmarks
+
 ### v0.2 - 2019-12-09
 1. Enable the ability to repeat requests in tab
 
