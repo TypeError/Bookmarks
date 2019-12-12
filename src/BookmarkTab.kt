@@ -39,13 +39,13 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
     private val responseViewer: IMessageEditor? = messageEditor.responseViewer
 
     val panel = JSplitPane(JSplitPane.VERTICAL_SPLIT)
-    private val bookmarks = model.bookmarks
+    val bookmarks = model.bookmarks
 
     private val repeatInTable = JCheckBox("Add repeated request to table")
 
     init {
         BookmarkActions(this, bookmarks, callbacks)
-        val bookmarkOptons = BookmarkOptions()
+        val bookmarkOptons = BookmarkOptions(this, callbacks)
         table.autoResizeMode = JTable.AUTO_RESIZE_OFF
         table.columnModel.getColumn(0).preferredWidth = 30 // ID
         table.columnModel.getColumn(1).preferredWidth = 145 // date
@@ -103,6 +103,7 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
     }
 
     private fun createBookmark(requestResponse: IHttpRequestResponse, repeated: Boolean = false) {
+        val savdRequestResponse = callbacks.saveBuffersToTempFiles(requestResponse)
         val now = LocalDateTime.now()
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         val dateTime = now.format(dateFormatter) ?: ""
@@ -121,7 +122,7 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         val file = requestInfo.url.file
         val parameters = requestInfo.parameters.joinToString(separator = ", ", limit = 5) { "${it.name}=${it.value}" }
         val bookmark = Bookmark(
-            requestResponse,
+            savdRequestResponse,
             dateTime,
             host,
             url,
