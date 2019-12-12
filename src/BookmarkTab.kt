@@ -190,8 +190,9 @@ class BookmarksModel : AbstractTableModel() {
             "File"
         )
     var bookmarks: MutableList<Bookmark> = ArrayList()
+    private var displayedBookmarks: MutableList<Bookmark> = ArrayList()
 
-    override fun getRowCount(): Int = bookmarks.size
+    override fun getRowCount(): Int = displayedBookmarks.size
 
     override fun getColumnCount(): Int = columns.size
 
@@ -218,7 +219,7 @@ class BookmarksModel : AbstractTableModel() {
     }
 
     override fun getValueAt(rowIndex: Int, columnIndex: Int): Any {
-        val bookmark = bookmarks[rowIndex]
+        val bookmark = displayedBookmarks[rowIndex]
 
         return when (columnIndex) {
             0 -> rowIndex
@@ -239,18 +240,25 @@ class BookmarksModel : AbstractTableModel() {
 
     fun addBookmark(bookmark: Bookmark) {
         bookmarks.add(bookmark)
+        filteredBookmarks()
         fireTableRowsInserted(bookmarks.lastIndex, bookmarks.lastIndex)
     }
 
     fun removeBookmarks(selectedBookmarks: MutableList<Bookmark>) {
         bookmarks.removeAll(selectedBookmarks)
+        filteredBookmarks()
         fireTableDataChanged()
     }
 
     fun clearBookmarks() {
         bookmarks.clear()
+        filteredBookmarks()
         fireTableDataChanged()
+    }
 
+    fun filteredBookmarks(updatedBookmarks: MutableList<Bookmark> = bookmarks) {
+        displayedBookmarks = updatedBookmarks
+        fireTableDataChanged()
     }
 }
 
