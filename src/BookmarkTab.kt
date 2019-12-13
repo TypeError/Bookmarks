@@ -1,5 +1,9 @@
 package burp
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.swing.Swing
 import java.awt.FlowLayout
 import java.net.URL
 import java.time.LocalDateTime
@@ -70,11 +74,7 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         val repeatPanel = JPanel(FlowLayout(FlowLayout.LEFT))
 
         val repeatButton = JButton("Repeat Request")
-        repeatButton.addActionListener {
-            repeatRequest()
-            repeatButton.isFocusPainted = false
-        }
-
+        repeatButton.addActionListener { repeatRequest() }
         repeatInTable.isSelected = true
 
         repeatPanel.add(repeatButton)
@@ -98,11 +98,15 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
 
     fun addBookmark(requestsResponses: Array<IHttpRequestResponse>) {
         for (requestResponse in requestsResponses) {
-            createBookmark(requestResponse, false)
+            createBookmark(requestResponse)
         }
     }
 
-    private fun createBookmark(requestResponse: IHttpRequestResponse, repeated: Boolean = false) {
+    private fun createBookmark(
+        requestResponse: IHttpRequestResponse,
+        repeated: Boolean = false,
+        proxyHistory: Boolean = true
+    ) {
         val savdRequestResponse = callbacks.saveBuffersToTempFiles(requestResponse)
         val now = LocalDateTime.now()
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -136,8 +140,10 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
             repeated
         )
         model.addBookmark(bookmark)
-        requestResponse.highlight = "magenta"
-        requestResponse.comment = "[^]"
+        if (proxyHistory) {
+            requestResponse.highlight = "magenta"
+            requestResponse.comment = "[^]"
+        }
     }
 
     private fun getTitle(response: ByteArray?): String {
@@ -150,15 +156,19 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
 
 
     private fun repeatRequest() {
-        Thread {
+        GlobalScope.launch(Dispatchers.IO) {
             val requestResponse = callbacks.makeHttpRequest(messageEditor.httpService, requestViewer?.message)
             responseViewer?.setMessage(requestResponse.response, false)
             if (repeatInTable.isSelected) {
-                createBookmark(requestResponse, true)
+                launch(Dispatchers.Swing) {
+                    createBookmark(requestResponse, true, false)
+                    model.filteredBookmarks()
+                }
             }
-        }.start()
+        }
     }
 }
+
 
 class MessageEditor(callbacks: IBurpExtenderCallbacks) : IMessageEditorController {
     var requestResponse: IHttpRequestResponse? = null
@@ -241,7 +251,7 @@ class BookmarksModel : AbstractTableModel() {
     fun addBookmark(bookmark: Bookmark) {
         bookmarks.add(bookmark)
         filteredBookmarks()
-        fireTableRowsInserted(bookmarks.lastIndex, bookmarks.lastIndex)
+        fireTableDataChanged()
     }
 
     fun removeBookmarks(selectedBookmarks: MutableList<Bookmark>) {
