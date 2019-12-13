@@ -16,7 +16,7 @@ Extender requires [Burp Suite](https://portswigger.net/burp) and works in both t
 ### Build the extension
 
 ```sh
-./gradlew fatJar
+gradle build fatJar
 ```
 
 Extension JAR will be located at: `build/libs/bookmarks.jar`
