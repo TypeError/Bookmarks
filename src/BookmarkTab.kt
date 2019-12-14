@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
+import kotlinx.coroutines.withContext
 import java.awt.FlowLayout
 import java.net.URL
 import java.time.LocalDateTime
@@ -144,6 +145,10 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
             requestResponse.highlight = "magenta"
             requestResponse.comment = "[^]"
         }
+
+        SwingUtilities.invokeLater {
+            table.scrollRectToVisible(table.getCellRect(table.rowCount - 1, table.columnCount, true))
+        }
     }
 
     private fun getTitle(response: ByteArray?): String {
@@ -158,11 +163,10 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
     private fun repeatRequest() {
         GlobalScope.launch(Dispatchers.IO) {
             val requestResponse = callbacks.makeHttpRequest(messageEditor.httpService, requestViewer?.message)
-            responseViewer?.setMessage(requestResponse.response, false)
-            if (repeatInTable.isSelected) {
-                launch(Dispatchers.Swing) {
-                    createBookmark(requestResponse, true, false)
-                    model.filteredBookmarks()
+            withContext(Dispatchers.Swing) {
+                responseViewer?.setMessage(requestResponse.response, false)
+                if (repeatInTable.isSelected) {
+                    createBookmark(requestResponse, repeated = true, proxyHistory = false)
                 }
             }
         }
@@ -250,23 +254,21 @@ class BookmarksModel : AbstractTableModel() {
 
     fun addBookmark(bookmark: Bookmark) {
         bookmarks.add(bookmark)
-        filteredBookmarks()
-        fireTableDataChanged()
+        displayedBookmarks = bookmarks
+        fireTableRowsInserted(displayedBookmarks.lastIndex, displayedBookmarks.lastIndex)
     }
 
     fun removeBookmarks(selectedBookmarks: MutableList<Bookmark>) {
         bookmarks.removeAll(selectedBookmarks)
-        filteredBookmarks()
-        fireTableDataChanged()
+        refreshBookmarks()
     }
 
     fun clearBookmarks() {
         bookmarks.clear()
-        filteredBookmarks()
-        fireTableDataChanged()
+        refreshBookmarks()
     }
 
-    fun filteredBookmarks(updatedBookmarks: MutableList<Bookmark> = bookmarks) {
+    fun refreshBookmarks(updatedBookmarks: MutableList<Bookmark> = bookmarks) {
         displayedBookmarks = updatedBookmarks
         fireTableDataChanged()
     }
