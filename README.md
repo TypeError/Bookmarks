@@ -1,8 +1,8 @@
 # Bookmarks [^]
 
-A simple Burp Suite extension to *bookmark* requests for later, instead of those 100 unnamed repeater tabs you've got open. 
+A [Burp Suite](https://portswigger.net/burp)  extension to *bookmark* requests for later, instead of those 100 unnamed repeater tabs you've got open. 
 
-Extender requires [Burp Suite](https://portswigger.net/burp) and works in both the Community (Free) and Professional versions. 
+Bookmarks works in both the Community (Free) and Professional versions. 
 
 #### Features:
 * Save requests to table
@@ -12,8 +12,15 @@ Extender requires [Burp Suite](https://portswigger.net/burp) and works in both t
 * Load highlighted requests from Proxy History
 * Search bookmarks
 
+![Bookmarks](/images/bookmarks.png)
+
 ## Install the Bookmarks Burp Suite Extension
-### Build the extension
+
+### Download or build the extension
+#### Option 1: Download release
+You can find the latest release (JAR file) [here](https://github.com/TypeError/Bookmarks/releases). 
+
+#### Option 2: Build the extension
 
 ```sh
 gradle build fatJar
@@ -21,7 +28,7 @@ gradle build fatJar
 
 Extension JAR will be located at: `build/libs/bookmarks.jar`
 
-#### Load the extension
+### Load the extension
 1. Open Burp Suite
 2. Go to Extender tab
 3. Burp Extensions -> Add
@@ -41,15 +48,4 @@ Extension JAR will be located at: `build/libs/bookmarks.jar`
 
 *If the `Add repeated request to table` checkbox is checked, requests will be added to the table*
 
-
-## Changelog
-### v0.3 - 2019-12-12
-1. Import highlighted proxy history
-2. Search bookmarks
-
-### v0.2 - 2019-12-09
-1. Enable the ability to repeat requests in tab
-
-### v0.1 - 2019-12-07
-1. Initial pre-release
  
