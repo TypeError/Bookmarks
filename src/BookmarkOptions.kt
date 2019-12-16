@@ -50,7 +50,7 @@ class BookmarkOptions(
         if (searchText.isNotEmpty()) {
             val filteredBookmarks = bookmarks
                 .filter {
-                    callbacks.helpers.bytesToString(it.requestResponse.request).contains(searchText) ||
+                    callbacks.helpers.bytesToString(it.requestResponse.request).contains(searchText) &&
                             callbacks.helpers.bytesToString(it.requestResponse.response).contains(searchText)
                 }.toMutableList()
             bookmarksPanel.model.refreshBookmarks(filteredBookmarks)
