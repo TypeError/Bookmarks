@@ -117,13 +117,11 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         val dateTime = now.format(dateFormatter) ?: ""
         val requestInfo = callbacks.helpers.analyzeRequest(requestResponse)
-        callbacks.stdout.write("pre-response".toByteArray())
         val response = if (requestResponse.response != null) {
             callbacks.helpers.analyzeResponse(requestResponse.response)
         } else {
             null
         }
-        callbacks.stdout.write("response".toByteArray())
         val host = requestInfo.url.host
         val url = requestInfo.url
         val method = requestInfo?.method ?: ""
