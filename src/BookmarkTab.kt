@@ -28,11 +28,13 @@ data class Bookmark(
     val method: String,
     val statusCode: String,
     val title: String,
+    val length: String,
     val mimeType: String,
     val protocol: String,
     val file: String,
-    val parameters: String,
-    val repeated: Boolean
+    val parameters: Boolean,
+    val repeated: Boolean,
+    val comments: String
 )
 
 class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
@@ -54,16 +56,18 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         table.autoResizeMode = JTable.AUTO_RESIZE_OFF
         table.columnModel.getColumn(0).preferredWidth = 30 // ID
         table.columnModel.getColumn(1).preferredWidth = 145 // date
-        table.columnModel.getColumn(2).preferredWidth = 130 // host
-        table.columnModel.getColumn(3).preferredWidth = 400 // url
-        table.columnModel.getColumn(4).preferredWidth = 110 // title
+        table.columnModel.getColumn(2).preferredWidth = 125 // host
+        table.columnModel.getColumn(3).preferredWidth = 380 // url
+        table.columnModel.getColumn(4).preferredWidth = 130 // title
         table.columnModel.getColumn(5).preferredWidth = 60 // repeated
-        table.columnModel.getColumn(6).preferredWidth = 60 // method
-        table.columnModel.getColumn(7).preferredWidth = 60 // status
-        table.columnModel.getColumn(8).preferredWidth = 130 // parameters
-        table.columnModel.getColumn(9).preferredWidth = 50 // mime
-        table.columnModel.getColumn(10).preferredWidth = 50 // protocol
-        table.columnModel.getColumn(11).preferredWidth = 80 // file
+        table.columnModel.getColumn(6).preferredWidth = 55 // params
+        table.columnModel.getColumn(7).preferredWidth = 50 // method
+        table.columnModel.getColumn(8).preferredWidth = 50 // status
+        table.columnModel.getColumn(9).preferredWidth = 50 // length
+        table.columnModel.getColumn(10).preferredWidth = 50 // mime
+        table.columnModel.getColumn(11).preferredWidth = 50 // protocol
+        table.columnModel.getColumn(12).preferredWidth = 80 // file
+        table.columnModel.getColumn(13).preferredWidth = 120 // comments
 
         table.selectionModel.addListSelectionListener {
             val requestResponse = bookmarks[table.selectedRow].requestResponse
@@ -108,46 +112,53 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         repeated: Boolean = false,
         proxyHistory: Boolean = true
     ) {
-        val savdRequestResponse = callbacks.saveBuffersToTempFiles(requestResponse)
+        val savedRequestResponse = callbacks.saveBuffersToTempFiles(requestResponse)
         val now = LocalDateTime.now()
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         val dateTime = now.format(dateFormatter) ?: ""
         val requestInfo = callbacks.helpers.analyzeRequest(requestResponse)
-        var response: IResponseInfo? = null
-        requestResponse.response?.let {
-            response = callbacks.helpers.analyzeResponse(requestResponse.response)
+        callbacks.stdout.write("pre-response".toByteArray())
+        val response = if (requestResponse.response != null) {
+            callbacks.helpers.analyzeResponse(requestResponse.response)
+        } else {
+            null
         }
-        val host = requestInfo.url.host ?: ""
+        callbacks.stdout.write("response".toByteArray())
+        val host = requestInfo.url.host
         val url = requestInfo.url
-        val method = requestInfo.method ?: ""
+        val method = requestInfo?.method ?: ""
         val statusCode = response?.statusCode?.toString() ?: ""
         val title = getTitle(requestResponse.response)
         val mimeType = response?.inferredMimeType ?: ""
-        val protocol = requestInfo.url.protocol
-        val file = requestInfo.url.file
-        val parameters = requestInfo.parameters.joinToString(separator = ", ", limit = 5) { "${it.name}=${it.value}" }
+        val length = requestResponse.response?.size?.toString() ?: ""
+        val protocol = requestInfo?.url?.protocol ?: ""
+        val file = requestInfo?.url?.file ?: ""
+        val parameters = requestInfo.parameters.isNullOrEmpty()
+        val comments = requestResponse.comment ?: ""
         val bookmark = Bookmark(
-            savdRequestResponse,
+            savedRequestResponse,
             dateTime,
             host,
             url,
             method,
             statusCode,
             title,
+            length,
             mimeType,
             protocol,
             file,
             parameters,
-            repeated
+            repeated,
+            comments
         )
+
         model.addBookmark(bookmark)
         if (proxyHistory) {
             requestResponse.highlight = "magenta"
-            requestResponse.comment = "[^]"
         }
 
         SwingUtilities.invokeLater {
-            table.scrollRectToVisible(table.getCellRect(table.rowCount - 1, table.columnCount, true))
+            table.scrollRectToVisible(table.getCellRect(table.rowCount - 1, 0, true))
         }
     }
 
@@ -173,7 +184,6 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
     }
 }
 
-
 class MessageEditor(callbacks: IBurpExtenderCallbacks) : IMessageEditorController {
     var requestResponse: IHttpRequestResponse? = null
 
@@ -196,12 +206,14 @@ class BookmarksModel : AbstractTableModel() {
             "URL",
             "Title",
             "Repeated",
+            "Params",
             "Method",
             "Status",
-            "Parameters",
+            "Length",
             "MIME",
             "Protocol",
-            "File"
+            "File",
+            "Comments"
         )
     var bookmarks: MutableList<Bookmark> = ArrayList()
     private var displayedBookmarks: MutableList<Bookmark> = ArrayList()
@@ -222,12 +234,14 @@ class BookmarksModel : AbstractTableModel() {
             3 -> String::class.java
             4 -> String::class.java
             5 -> java.lang.Boolean::class.java
-            6 -> String::class.java
+            6 -> java.lang.Boolean::class.java
             7 -> String::class.java
             8 -> String::class.java
             9 -> String::class.java
             10 -> String::class.java
             11 -> String::class.java
+            12 -> String::class.java
+            13 -> String::class.java
             else -> throw RuntimeException()
         }
     }
@@ -242,12 +256,14 @@ class BookmarksModel : AbstractTableModel() {
             3 -> bookmark.url.toString()
             4 -> bookmark.title
             5 -> bookmark.repeated
-            6 -> bookmark.method
-            7 -> bookmark.statusCode
-            8 -> bookmark.parameters
-            9 -> bookmark.mimeType
-            10 -> bookmark.protocol
-            11 -> bookmark.file
+            6 -> bookmark.parameters
+            7 -> bookmark.method
+            8 -> bookmark.statusCode
+            9 -> bookmark.length
+            10 -> bookmark.mimeType
+            11 -> bookmark.protocol
+            12 -> bookmark.file
+            13 -> bookmark.comments
             else -> ""
         }
     }
