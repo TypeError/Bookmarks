@@ -42,8 +42,8 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
     val table = JTable(model)
 
     private val messageEditor = MessageEditor(callbacks)
-    private val requestViewer: IMessageEditor? = messageEditor.requestViewer
-    private val responseViewer: IMessageEditor? = messageEditor.responseViewer
+    val requestViewer: IMessageEditor? = messageEditor.requestViewer
+    val responseViewer: IMessageEditor? = messageEditor.responseViewer
 
     val panel = JSplitPane(JSplitPane.VERTICAL_SPLIT)
     val bookmarks = model.bookmarks
@@ -52,7 +52,7 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
 
     init {
         BookmarkActions(this, bookmarks, callbacks)
-        val bookmarkOptons = BookmarkOptions(this, callbacks)
+        val bookmarkOptions = BookmarkOptions(this, callbacks)
         table.autoResizeMode = JTable.AUTO_RESIZE_OFF
         table.columnModel.getColumn(0).preferredWidth = 30 // ID
         table.columnModel.getColumn(1).preferredWidth = 145 // date
@@ -68,12 +68,15 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         table.columnModel.getColumn(11).preferredWidth = 50 // protocol
         table.columnModel.getColumn(12).preferredWidth = 80 // file
         table.columnModel.getColumn(13).preferredWidth = 120 // comments
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
 
         table.selectionModel.addListSelectionListener {
-            val requestResponse = bookmarks[table.selectedRow].requestResponse
-            messageEditor.requestResponse = requestResponse
-            requestViewer?.setMessage(requestResponse.request, true)
-            responseViewer?.setMessage(requestResponse.response ?: ByteArray(0), false)
+            if (table.selectedRow != -1) {
+                val requestResponse = bookmarks[table.selectedRow].requestResponse
+                messageEditor.requestResponse = requestResponse
+                requestViewer?.setMessage(requestResponse.request, true)
+                responseViewer?.setMessage(requestResponse.response ?: ByteArray(0), false)
+            }
         }
 
         val repeatPanel = JPanel(FlowLayout(FlowLayout.LEFT))
@@ -94,7 +97,7 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
             JSplitPane(JSplitPane.VERTICAL_SPLIT, repeatPanel, reqResSplit)
 
         val bookmarksOptSplit =
-            JSplitPane(JSplitPane.VERTICAL_SPLIT, bookmarkOptons.panel, bookmarksTable)
+            JSplitPane(JSplitPane.VERTICAL_SPLIT, bookmarkOptions.panel, bookmarksTable)
 
         panel.topComponent = bookmarksOptSplit
         panel.bottomComponent = repeatReqSplit
@@ -173,9 +176,11 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         GlobalScope.launch(Dispatchers.IO) {
             val requestResponse = callbacks.makeHttpRequest(messageEditor.httpService, requestViewer?.message)
             withContext(Dispatchers.Swing) {
-                responseViewer?.setMessage(requestResponse.response, false)
-                if (repeatInTable.isSelected) {
-                    createBookmark(requestResponse, repeated = true, proxyHistory = false)
+                SwingUtilities.invokeLater {
+                    responseViewer?.setMessage(requestResponse.response, false)
+                    if (repeatInTable.isSelected) {
+                        createBookmark(requestResponse, repeated = true, proxyHistory = false)
+                    }
                 }
             }
         }
