@@ -46,6 +46,8 @@ class BookmarkActions(
             }
             clearMenu -> {
                 panel.model.clearBookmarks()
+                panel.requestViewer?.setMessage(ByteArray(0), true)
+                panel.responseViewer?.setMessage(ByteArray(0), false)
             }
             copyURLs -> {
                 val urls = selectedBookmarks.map { it.url }.joinToString()
