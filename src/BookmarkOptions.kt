@@ -36,24 +36,30 @@ class BookmarkOptions(
     }
 
     private fun loadHighlightedRequests() {
-        val bookmarks = bookmarksPanel.bookmarks
-        val highlightedProxyHistory = callbacks.proxyHistory.filter { it.highlight != null }
-        val bookmarkRequests = bookmarks.map { callbacks.helpers.bytesToString(it.requestResponse.request) }
-        val bookmarksToAdd = highlightedProxyHistory
-            .filter { !bookmarkRequests.contains(callbacks.helpers.bytesToString(it.request)) }.toTypedArray()
-        bookmarksPanel.addBookmark(bookmarksToAdd)
+        SwingUtilities.invokeLater {
+            val bookmarks = bookmarksPanel.bookmarks
+            val highlightedProxyHistory = callbacks.proxyHistory.filter { it.highlight != null }
+            val bookmarkRequests = bookmarks.map { callbacks.helpers.bytesToString(it.requestResponse.request) }
+            val bookmarksToAdd = highlightedProxyHistory
+                .filter { !bookmarkRequests.contains(callbacks.helpers.bytesToString(it.request)) }.toTypedArray()
+            bookmarksPanel.addBookmark(bookmarksToAdd)
+        }
     }
 
     private fun searchBookmarks() {
-        val searchText = searchBar.text
-        val bookmarks = this.bookmarksPanel.bookmarks
-        if (searchText.isNotEmpty()) {
-            val filteredBookmarks = bookmarks
-                .filter {
-                    callbacks.helpers.bytesToString(it.requestResponse.request).contains(searchText) &&
-                            callbacks.helpers.bytesToString(it.requestResponse.response).contains(searchText)
-                }.toMutableList()
-            bookmarksPanel.model.refreshBookmarks(filteredBookmarks)
+        SwingUtilities.invokeLater {
+            val searchText = searchBar.text
+            val bookmarks = this.bookmarksPanel.bookmarks
+            if (searchText.isNotEmpty()) {
+                val filteredBookmarks = bookmarks
+                    .filter {
+                        callbacks.helpers.bytesToString(it.requestResponse.request).contains(searchText) &&
+                                callbacks.helpers.bytesToString(it.requestResponse.response).contains(searchText)
+                    }.toMutableList()
+                bookmarksPanel.model.refreshBookmarks(filteredBookmarks)
+                bookmarksPanel.requestViewer?.setMessage(ByteArray(0), true)
+                bookmarksPanel.responseViewer?.setMessage(ByteArray(0), false)
+            }
         }
     }
 
@@ -63,7 +69,8 @@ class BookmarkOptions(
     }
 
     private fun clearBookmarks() {
-        bookmarksPanel.model.bookmarks.clear()
-        bookmarksPanel.model.refreshBookmarks()
+        bookmarksPanel.model.clearBookmarks()
+        bookmarksPanel.requestViewer?.setMessage(ByteArray(0), true)
+        bookmarksPanel.responseViewer?.setMessage(ByteArray(0), false)
     }
 }
