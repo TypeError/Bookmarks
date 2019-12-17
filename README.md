@@ -1,6 +1,6 @@
 # Bookmarks [^]
 
-A [Burp Suite](https://portswigger.net/burp)  extension to *bookmark* requests for later, instead of those 100 unnamed repeater tabs you've got open. 
+A [Burp Suite](https://portswigger.net/burp) extension to *bookmark* requests for later, instead of those 100 unnamed repeater tabs you've got open. 
 
 Bookmarks works in both the Community (Free) and Professional versions. 
 
