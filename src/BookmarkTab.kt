@@ -134,7 +134,8 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         val length = requestResponse.response?.size?.toString() ?: ""
         val protocol = requestInfo?.url?.protocol ?: ""
         val file = requestInfo?.url?.file ?: ""
-        val parameters = requestInfo.parameters.isNullOrEmpty()
+        val parameters =
+            !requestInfo.parameters.filter { it.type != IParameter.PARAM_COOKIE }.isNullOrEmpty() || !requestInfo.url.query.isNullOrEmpty()
         val comments = requestResponse.comment ?: ""
         val bookmark = Bookmark(
             savedRequestResponse,
