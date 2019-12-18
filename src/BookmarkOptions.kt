@@ -48,13 +48,15 @@ class BookmarkOptions(
 
     private fun searchBookmarks() {
         SwingUtilities.invokeLater {
-            val searchText = searchBar.text
+            val searchText = searchBar.text.toLowerCase()
             val bookmarks = this.bookmarksPanel.bookmarks
             if (searchText.isNotEmpty()) {
                 val filteredBookmarks = bookmarks
                     .filter {
-                        callbacks.helpers.bytesToString(it.requestResponse.request).contains(searchText) &&
-                                callbacks.helpers.bytesToString(it.requestResponse.response).contains(searchText)
+                        callbacks.helpers.bytesToString(it.requestResponse.request).toLowerCase().contains(searchText) &&
+                                callbacks.helpers.bytesToString(it.requestResponse.response).toLowerCase().contains(
+                                    searchText
+                                )
                     }.toMutableList()
                 bookmarksPanel.model.refreshBookmarks(filteredBookmarks)
                 bookmarksPanel.requestViewer?.setMessage(ByteArray(0), true)
