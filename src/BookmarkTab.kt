@@ -105,6 +105,7 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
 
         panel.topComponent = bookmarksOptSplit
         panel.bottomComponent = repeatReqSplit
+        panel.resizeWeight = 0.5
         callbacks.customizeUiComponent(panel)
     }
 
