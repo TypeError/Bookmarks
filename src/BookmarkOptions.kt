@@ -36,6 +36,7 @@ class BookmarkOptions(
     }
 
     private fun loadHighlightedRequests() {
+        bookmarksPanel.model.refreshBookmarks()
         SwingUtilities.invokeLater {
             val bookmarks = bookmarksPanel.bookmarks
             val highlightedProxyHistory = callbacks.proxyHistory.filter { it.highlight != null }
@@ -59,8 +60,7 @@ class BookmarkOptions(
                                 )
                     }.toMutableList()
                 bookmarksPanel.model.refreshBookmarks(filteredBookmarks)
-                bookmarksPanel.requestViewer?.setMessage(ByteArray(0), true)
-                bookmarksPanel.responseViewer?.setMessage(ByteArray(0), false)
+                rowSelection()
             }
         }
     }
@@ -68,11 +68,22 @@ class BookmarkOptions(
     private fun resetSearch() {
         searchBar.text = ""
         bookmarksPanel.model.refreshBookmarks()
+        rowSelection()
     }
 
     private fun clearBookmarks() {
         bookmarksPanel.model.clearBookmarks()
         bookmarksPanel.requestViewer?.setMessage(ByteArray(0), true)
         bookmarksPanel.responseViewer?.setMessage(ByteArray(0), false)
+    }
+
+    private fun rowSelection() {
+        val rowCount = bookmarksPanel.table.rowCount
+        if (rowCount != -1) {
+            bookmarksPanel.table.setRowSelectionInterval(rowCount - 1, rowCount - 1)
+        } else {
+            bookmarksPanel.requestViewer?.setMessage(ByteArray(0), true)
+            bookmarksPanel.responseViewer?.setMessage(ByteArray(0), false)
+        }
     }
 }
