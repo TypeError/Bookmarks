@@ -11,6 +11,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.swing.*
 import javax.swing.table.AbstractTableModel
+import javax.swing.table.TableRowSorter
 
 class BookmarkTab(callbacks: IBurpExtenderCallbacks) : ITab {
     val bookmarkTable = BookmarksPanel(callbacks)
@@ -69,10 +70,13 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         table.columnModel.getColumn(12).preferredWidth = 80 // file
         table.columnModel.getColumn(13).preferredWidth = 120 // comments
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
+        table.rowSorter = TableRowSorter(model)
 
         table.selectionModel.addListSelectionListener {
             if (table.selectedRow != -1) {
-                val requestResponse = bookmarks[table.selectedRow].requestResponse
+                val displayedBookmarks = model.displayedBookmarks
+                val selectedRow = table.convertRowIndexToModel(table.selectedRow)
+                val requestResponse = displayedBookmarks[selectedRow].requestResponse
                 messageEditor.requestResponse = requestResponse
                 requestViewer?.setMessage(requestResponse.request, true)
                 responseViewer?.setMessage(requestResponse.response ?: ByteArray(0), false)
@@ -161,6 +165,7 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
 
         SwingUtilities.invokeLater {
             table.scrollRectToVisible(table.getCellRect(table.rowCount - 1, 0, true))
+            table.setRowSelectionInterval(table.rowCount - 1, table.rowCount - 1)
         }
     }
 
@@ -172,8 +177,8 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         return title.removePrefix("<title>").removeSuffix("</title>")
     }
 
-
     private fun repeatRequest() {
+        model.refreshBookmarks()
         GlobalScope.launch(Dispatchers.IO) {
             val requestResponse = callbacks.makeHttpRequest(messageEditor.httpService, requestViewer?.message)
             withContext(Dispatchers.Swing) {
@@ -220,7 +225,8 @@ class BookmarksModel : AbstractTableModel() {
             "Comments"
         )
     var bookmarks: MutableList<Bookmark> = ArrayList()
-    private var displayedBookmarks: MutableList<Bookmark> = ArrayList()
+    var displayedBookmarks: MutableList<Bookmark> = ArrayList()
+        private set
 
     override fun getRowCount(): Int = displayedBookmarks.size
 
@@ -292,6 +298,7 @@ class BookmarksModel : AbstractTableModel() {
         displayedBookmarks = updatedBookmarks
         fireTableDataChanged()
     }
+
 }
 
 
