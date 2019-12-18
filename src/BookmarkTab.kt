@@ -68,7 +68,7 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         table.columnModel.getColumn(11).preferredWidth = 50 // protocol
         table.columnModel.getColumn(12).preferredWidth = 80 // file
         table.columnModel.getColumn(13).preferredWidth = 120 // comments
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
+        table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
 
         table.selectionModel.addListSelectionListener {
             if (table.selectedRow != -1) {
