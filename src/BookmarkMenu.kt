@@ -9,6 +9,7 @@ class BookmarkMenu(private val table: BookmarksPanel) : IContextMenuFactory {
         val bookmarkButton = JMenuItem("Add bookmark(s) [^]")
         bookmarkButton.addActionListener {
             if (requests != null) {
+                table.model.refreshBookmarks()
                 table.addBookmark(requests)
             }
         }
