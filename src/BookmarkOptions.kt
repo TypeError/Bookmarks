@@ -39,10 +39,21 @@ class BookmarkOptions(
         bookmarksPanel.model.refreshBookmarks()
         SwingUtilities.invokeLater {
             val bookmarks = bookmarksPanel.bookmarks
-            val highlightedProxyHistory = callbacks.proxyHistory.filter { it.highlight != null }
             val bookmarkRequests = bookmarks.map { callbacks.helpers.bytesToString(it.requestResponse.request) }
-            val bookmarksToAdd = highlightedProxyHistory
-                .filter { !bookmarkRequests.contains(callbacks.helpers.bytesToString(it.request)) }.toTypedArray()
+            val bookmarkResponses =
+                bookmarks.map { callbacks.helpers.bytesToString(it.requestResponse.response ?: ByteArray(0)) }
+            val proxyHistory = callbacks.proxyHistory.asSequence()
+            val bookmarksToAdd = proxyHistory
+                .filter { it.highlight != null }
+                .filterNot {
+                    bookmarkRequests.contains(callbacks.helpers.bytesToString(it.request)) &&
+                            bookmarkResponses.contains(
+                                callbacks.helpers.bytesToString(it.response)
+                            )
+                }
+                .distinct()
+                .toList()
+                .toTypedArray()
             bookmarksPanel.addBookmark(bookmarksToAdd)
         }
     }
@@ -54,8 +65,13 @@ class BookmarkOptions(
             if (searchText.isNotEmpty()) {
                 val filteredBookmarks = bookmarks
                     .filter {
-                        callbacks.helpers.bytesToString(it.requestResponse.request).toLowerCase().contains(searchText) &&
-                                callbacks.helpers.bytesToString(it.requestResponse.response).toLowerCase().contains(
+                        it.url.toString().toLowerCase().contains(searchText) ||
+                                callbacks.helpers.bytesToString(it.requestResponse.request).toLowerCase().contains(
+                                    searchText
+                                ) ||
+                                callbacks.helpers.bytesToString(
+                                    it.requestResponse.response ?: ByteArray(0)
+                                ).toLowerCase().contains(
                                     searchText
                                 )
                     }.toMutableList()
