@@ -181,11 +181,15 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
     private fun repeatRequest() {
         model.refreshBookmarks()
         GlobalScope.launch(Dispatchers.IO) {
-            val requestResponse = callbacks.makeHttpRequest(messageEditor.httpService, requestViewer?.message)
+            val requestResponse = try {
+                callbacks.makeHttpRequest(messageEditor.httpService, requestViewer?.message)
+            } catch (e: java.lang.RuntimeException) {
+                RequestResponse(requestViewer?.message, null, messageEditor.httpService)
+            }
             withContext(Dispatchers.Swing) {
                 SwingUtilities.invokeLater {
-                    responseViewer?.setMessage(requestResponse.response, false)
-                    if (repeatInTable.isSelected) {
+                    responseViewer?.setMessage(requestResponse?.response ?: ByteArray(0), false)
+                    if (repeatInTable.isSelected && requestResponse != null) {
                         createBookmark(requestResponse, repeated = true, proxyHistory = false)
                     }
                 }
@@ -300,6 +304,36 @@ class BookmarksModel : AbstractTableModel() {
         fireTableDataChanged()
     }
 
+}
+
+class RequestResponse(private var req: ByteArray?, private var res: ByteArray?, private var service: IHttpService?) :
+    IHttpRequestResponse {
+
+    override fun getComment(): String? = null
+
+    override fun setComment(comment: String?) {}
+
+    override fun getRequest(): ByteArray? = req
+
+    override fun getHighlight(): String? = null
+
+    override fun getHttpService(): IHttpService? = service
+
+    override fun getResponse(): ByteArray? = res
+
+    override fun setResponse(message: ByteArray?) {
+        res = message
+    }
+
+    override fun setRequest(message: ByteArray?) {
+        req = message
+    }
+
+    override fun setHttpService(httpService: IHttpService?) {
+        service = httpService
+    }
+
+    override fun setHighlight(color: String?) {}
 }
 
 
