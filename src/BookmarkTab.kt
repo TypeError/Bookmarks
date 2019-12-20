@@ -181,11 +181,15 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
     private fun repeatRequest() {
         model.refreshBookmarks()
         GlobalScope.launch(Dispatchers.IO) {
-            val requestResponse = callbacks.makeHttpRequest(messageEditor.httpService, requestViewer?.message)
+            val requestResponse = try {
+                callbacks.makeHttpRequest(messageEditor.httpService, requestViewer?.message)
+            } catch (e: java.lang.RuntimeException) {
+                messageEditor.requestResponse
+            }
             withContext(Dispatchers.Swing) {
                 SwingUtilities.invokeLater {
-                    responseViewer?.setMessage(requestResponse.response, false)
-                    if (repeatInTable.isSelected) {
+                    responseViewer?.setMessage(requestResponse?.response ?: ByteArray(0), false)
+                    if (repeatInTable.isSelected && requestResponse != null) {
                         createBookmark(requestResponse, repeated = true, proxyHistory = false)
                     }
                 }
