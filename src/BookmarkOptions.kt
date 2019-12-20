@@ -39,17 +39,22 @@ class BookmarkOptions(
         bookmarksPanel.model.refreshBookmarks()
         SwingUtilities.invokeLater {
             val bookmarks = bookmarksPanel.bookmarks
-            val bookmarkRequests = bookmarks.map { callbacks.helpers.bytesToString(it.requestResponse.request) }
-            val bookmarkResponses =
-                bookmarks.map { callbacks.helpers.bytesToString(it.requestResponse.response ?: ByteArray(0)) }
+            val bookmarkRequestResponse = bookmarks.map {
+                Pair(
+                    callbacks.helpers.bytesToString(it.requestResponse.request),
+                    callbacks.helpers.bytesToString(it.requestResponse.response ?: ByteArray(0))
+                )
+            }
             val proxyHistory = callbacks.proxyHistory.asSequence()
             val bookmarksToAdd = proxyHistory
                 .filter { it.highlight != null }
                 .filterNot {
-                    bookmarkRequests.contains(callbacks.helpers.bytesToString(it.request)) &&
-                            bookmarkResponses.contains(
-                                callbacks.helpers.bytesToString(it.response)
-                            )
+                    bookmarkRequestResponse.contains(
+                        Pair(
+                            callbacks.helpers.bytesToString(it.request),
+                            callbacks.helpers.bytesToString(it.response ?: ByteArray(0))
+                        )
+                    )
                 }
                 .distinct()
                 .toList()
