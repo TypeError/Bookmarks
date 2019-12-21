@@ -4,17 +4,22 @@ A [Burp Suite](https://portswigger.net/burp) extension to *bookmark* requests fo
 
 Bookmarks works in both the Community (Free) and Professional versions. 
 
+You can find [Bookmarks](https://portswigger.net/bappstore/ef6d970f0d11452ea024691dffb4b39c) on the [BApp Store](https://portswigger.net/bappstore). 
+
 #### Features:
 * Save requests to table
-* Repeat requests directly from `[^]` tab (and save to table)
+* Repeat requests directly from the `[^]` tab (and save to table)
 * Highlight bookmarked requests in Proxy History
 * Send to Repeater with tabs labeled with response titles
-* Load highlighted requests from Proxy History
+* Load highlighted requests from existing Proxy History
 * Search bookmarks
 
 ![Bookmarks](/images/bookmarks.png)
 
 ## Install the Bookmarks Burp Suite Extension
+
+### BApp Store
+Install [Bookmarks](https://portswigger.net/bappstore/ef6d970f0d11452ea024691dffb4b39c) from the [BApp Store](https://portswigger.net/bappstore) inside Burp Suite. 
 
 ### Download or build the extension
 #### Option 1: Download release
