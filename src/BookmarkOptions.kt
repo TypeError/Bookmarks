@@ -11,7 +11,7 @@ class BookmarkOptions(
     private val loadPanel = JPanel(FlowLayout(FlowLayout.RIGHT))
     private val searchBar = JTextField("", 20)
     private val searchPanel = JPanel(FlowLayout(FlowLayout.LEFT))
-
+    private val tagComboBox = JComboBox(arrayOf<String>())
 
     init {
         val loadButton = JButton("Load Highlighted Proxy History")
@@ -19,6 +19,9 @@ class BookmarkOptions(
         val searchLabel = JLabel("Search Bookmarks:")
         val searchButton = JButton("Search")
         val resetButton = JButton("Reset")
+        tagComboBox.selectedIndex = -1
+        tagComboBox.prototypeDisplayValue = "railroad"
+        tagComboBox.addItem("Tags")
         loadButton.addActionListener { loadHighlightedRequests() }
         clearButton.addActionListener { clearBookmarks() }
         searchBar.addActionListener { searchBookmarks() }
@@ -26,6 +29,7 @@ class BookmarkOptions(
         resetButton.addActionListener { resetSearch() }
         searchPanel.add(searchLabel)
         searchPanel.add(searchBar)
+        searchPanel.add(tagComboBox)
         searchPanel.add(searchButton)
         searchPanel.add(resetButton)
         loadPanel.add(clearButton)
@@ -66,9 +70,9 @@ class BookmarkOptions(
     private fun searchBookmarks() {
         SwingUtilities.invokeLater {
             val searchText = searchBar.text.toLowerCase()
-            val bookmarks = this.bookmarksPanel.bookmarks
+            var filteredBookmarks = this.bookmarksPanel.bookmarks
             if (searchText.isNotEmpty()) {
-                val filteredBookmarks = bookmarks
+                filteredBookmarks = filteredBookmarks
                     .filter {
                         it.url.toString().toLowerCase().contains(searchText) ||
                                 callbacks.helpers.bytesToString(it.requestResponse.request).toLowerCase().contains(
@@ -80,9 +84,22 @@ class BookmarkOptions(
                                     searchText
                                 )
                     }.toMutableList()
-                bookmarksPanel.model.refreshBookmarks(filteredBookmarks)
-                rowSelection()
             }
+            filteredBookmarks = filterTags(filteredBookmarks)
+            bookmarksPanel.model.refreshBookmarks(filteredBookmarks)
+            rowSelection()
+        }
+    }
+
+    private fun filterTags(bookmarks: MutableList<Bookmark>): MutableList<Bookmark> {
+        return if (tagComboBox.selectedItem != "Tags" || tagComboBox.selectedItem == null) {
+            val tag = tagComboBox.selectedItem
+            bookmarks
+                .filter {
+                    it.tags.contains(tag)
+                }.toMutableList()
+        } else {
+            bookmarks
         }
     }
 
@@ -90,6 +107,7 @@ class BookmarkOptions(
         searchBar.text = ""
         bookmarksPanel.model.refreshBookmarks()
         rowSelection()
+        updateTags()
     }
 
     private fun clearBookmarks() {
@@ -105,6 +123,14 @@ class BookmarkOptions(
         } else {
             bookmarksPanel.requestViewer?.setMessage(ByteArray(0), true)
             bookmarksPanel.responseViewer?.setMessage(ByteArray(0), false)
+        }
+    }
+
+    fun updateTags() {
+        tagComboBox.removeAllItems()
+        tagComboBox.addItem("Tags")
+        for (tag in bookmarksPanel.model.tags.sorted()) {
+            tagComboBox.addItem(tag)
         }
     }
 }
