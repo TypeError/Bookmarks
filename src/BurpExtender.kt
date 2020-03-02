@@ -5,9 +5,9 @@ class BurpExtender : IBurpExtender {
         val tab = BookmarkTab(callbacks)
         val table = tab.bookmarkTable
         val menuItem = BookmarkMenu(table)
-        callbacks.stdout.write("Bookmarks [^] v0.4.3".toByteArray())
+        callbacks.stdout.write("Bookmarks [^] v0.4.4".toByteArray())
         callbacks.stdout.write("\nAuthor: Caleb Kinney".toByteArray())
-        callbacks.stdout.write("\nEmail: caleb@cak.codes".toByteArray())
+        callbacks.stdout.write("\nEmail: caleb@derail.io".toByteArray())
         callbacks.stdout.write("\nGitHub: github.com/cak".toByteArray())
         callbacks.setExtensionName("Bookmarks [^]")
         callbacks.addSuiteTab(tab)
