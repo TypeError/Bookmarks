@@ -29,13 +29,14 @@ data class Bookmark(
     val method: String,
     val statusCode: String,
     val title: String,
+    var tags: MutableSet<String>,
     val length: String,
     val mimeType: String,
     val protocol: String,
     val file: String,
     val parameters: Boolean,
     val repeated: Boolean,
-    val comments: String
+    var comments: String
 )
 
 class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
@@ -48,27 +49,29 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
 
     val panel = JSplitPane(JSplitPane.VERTICAL_SPLIT)
     val bookmarks = model.bookmarks
+    val bookmarkOptions = BookmarkOptions(this, callbacks)
+
 
     private val repeatInTable = JCheckBox("Add repeated request to table")
 
     init {
         BookmarkActions(this, bookmarks, callbacks)
-        val bookmarkOptions = BookmarkOptions(this, callbacks)
         table.autoResizeMode = JTable.AUTO_RESIZE_OFF
         table.columnModel.getColumn(0).preferredWidth = 30 // ID
         table.columnModel.getColumn(1).preferredWidth = 145 // date
         table.columnModel.getColumn(2).preferredWidth = 125 // host
         table.columnModel.getColumn(3).preferredWidth = 380 // url
         table.columnModel.getColumn(4).preferredWidth = 130 // title
-        table.columnModel.getColumn(5).preferredWidth = 60 // repeated
-        table.columnModel.getColumn(6).preferredWidth = 55 // params
-        table.columnModel.getColumn(7).preferredWidth = 50 // method
-        table.columnModel.getColumn(8).preferredWidth = 50 // status
-        table.columnModel.getColumn(9).preferredWidth = 50 // length
-        table.columnModel.getColumn(10).preferredWidth = 50 // mime
-        table.columnModel.getColumn(11).preferredWidth = 50 // protocol
-        table.columnModel.getColumn(12).preferredWidth = 80 // file
-        table.columnModel.getColumn(13).preferredWidth = 120 // comments
+        table.columnModel.getColumn(5).preferredWidth = 75 // tags
+        table.columnModel.getColumn(6).preferredWidth = 60 // repeated
+        table.columnModel.getColumn(7).preferredWidth = 55 // params
+        table.columnModel.getColumn(8).preferredWidth = 50 // method
+        table.columnModel.getColumn(9).preferredWidth = 50 // status
+        table.columnModel.getColumn(10).preferredWidth = 50 // length
+        table.columnModel.getColumn(11).preferredWidth = 50 // mime
+        table.columnModel.getColumn(12).preferredWidth = 50 // protocol
+        table.columnModel.getColumn(13).preferredWidth = 80 // file
+        table.columnModel.getColumn(14).preferredWidth = 120 // comments
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
         table.rowSorter = TableRowSorter(model)
 
@@ -135,6 +138,7 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         val method = requestInfo?.method ?: ""
         val statusCode = response?.statusCode?.toString() ?: ""
         val title = getTitle(requestResponse.response)
+        val tags = mutableSetOf<String>()
         val mimeType = response?.inferredMimeType ?: ""
         val length = requestResponse.response?.size?.toString() ?: ""
         val protocol = requestInfo?.url?.protocol ?: ""
@@ -150,6 +154,7 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
             method,
             statusCode,
             title,
+            tags,
             length,
             mimeType,
             protocol,
@@ -219,6 +224,7 @@ class BookmarksModel : AbstractTableModel() {
             "Host",
             "URL",
             "Title",
+            "Tags",
             "Repeated",
             "Params",
             "Method",
@@ -230,6 +236,7 @@ class BookmarksModel : AbstractTableModel() {
             "Comments"
         )
     var bookmarks: MutableList<Bookmark> = ArrayList()
+    var tags: List<String> = listOf()
     var displayedBookmarks: MutableList<Bookmark> = ArrayList()
         private set
 
@@ -248,15 +255,16 @@ class BookmarksModel : AbstractTableModel() {
             2 -> String::class.java
             3 -> String::class.java
             4 -> String::class.java
-            5 -> java.lang.Boolean::class.java
+            5 -> String::class.java
             6 -> java.lang.Boolean::class.java
-            7 -> String::class.java
+            7 -> java.lang.Boolean::class.java
             8 -> String::class.java
             9 -> String::class.java
             10 -> String::class.java
             11 -> String::class.java
             12 -> String::class.java
             13 -> String::class.java
+            14 -> String::class.java
             else -> throw RuntimeException()
         }
     }
@@ -270,15 +278,16 @@ class BookmarksModel : AbstractTableModel() {
             2 -> bookmark.host
             3 -> bookmark.url.toString()
             4 -> bookmark.title
-            5 -> bookmark.repeated
-            6 -> bookmark.parameters
-            7 -> bookmark.method
-            8 -> bookmark.statusCode
-            9 -> bookmark.length
-            10 -> bookmark.mimeType
-            11 -> bookmark.protocol
-            12 -> bookmark.file
-            13 -> bookmark.comments
+            5 -> bookmark.tags.joinToString()
+            6 -> bookmark.repeated
+            7 -> bookmark.parameters
+            8 -> bookmark.method
+            9 -> bookmark.statusCode
+            10 -> bookmark.length
+            11 -> bookmark.mimeType
+            12 -> bookmark.protocol
+            13 -> bookmark.file
+            14 -> bookmark.comments
             else -> ""
         }
     }
@@ -286,22 +295,31 @@ class BookmarksModel : AbstractTableModel() {
     fun addBookmark(bookmark: Bookmark) {
         bookmarks.add(bookmark)
         displayedBookmarks = bookmarks
+        updateTags()
         fireTableRowsInserted(displayedBookmarks.lastIndex, displayedBookmarks.lastIndex)
     }
 
     fun removeBookmarks(selectedBookmarks: MutableList<Bookmark>) {
         bookmarks.removeAll(selectedBookmarks)
+        updateTags()
         refreshBookmarks()
     }
 
     fun clearBookmarks() {
         bookmarks.clear()
+        updateTags()
         refreshBookmarks()
     }
 
     fun refreshBookmarks(updatedBookmarks: MutableList<Bookmark> = bookmarks) {
         displayedBookmarks = updatedBookmarks
         fireTableDataChanged()
+        updateTags()
+    }
+
+    fun updateTags() {
+        val newTags = displayedBookmarks.flatMap { it.tags }.toSet().toList()
+        tags = newTags
     }
 
 }
