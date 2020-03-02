@@ -1,0 +1,12 @@
+Uuid: ef6d970f0d11452ea024691dffb4b39c
+ExtensionType: 1
+Name: Bookmarks
+RepoName: bookmarks
+ScreenVersion: 0.4.3
+SerialVersion: 2
+MinPlatformVersion: 0
+ProOnly: False
+Author: Caleb Kinney
+ShortDescription: Provides an easy way to save and revisit requests
+EntryPoint: build/libs/bookmarks.jar
+BuildCommand: gradle fatjar
