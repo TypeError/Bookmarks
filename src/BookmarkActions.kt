@@ -5,7 +5,9 @@ import java.awt.datatransfer.Clipboard
 import java.awt.datatransfer.StringSelection
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
+import javax.swing.JMenu
 import javax.swing.JMenuItem
+import javax.swing.JOptionPane
 import javax.swing.JPopupMenu
 
 class BookmarkActions(
@@ -20,6 +22,9 @@ class BookmarkActions(
     private val copyURLs = JMenuItem("Copy URL(s)")
     private val deleteMenu = JMenuItem("Delete Bookmark(s)")
     private val clearMenu = JMenuItem("Clear Bookmarks")
+    private val addTag = JMenu("Add Tag")
+    private val existingTags = JMenuItem("Existing Tags")
+    private val newTag = JMenuItem("New Tag")
 
     init {
         sendToRepeater.addActionListener(this)
@@ -33,6 +38,12 @@ class BookmarkActions(
         actionsMenu.addSeparator()
         actionsMenu.add(deleteMenu)
         actionsMenu.add(clearMenu)
+        actionsMenu.addSeparator()
+        newTag.addActionListener(this)
+        existingTags.addActionListener(this)
+        addTag.add(newTag)
+        addTag.add(existingTags)
+        actionsMenu.add(addTag)
         panel.table.componentPopupMenu = actionsMenu
     }
 
@@ -80,8 +91,23 @@ class BookmarkActions(
                                 selectedBookmark.requestResponse.request, null
                             )
                         }
+                        newTag -> {
+                            val tagToAdd = JOptionPane.showInputDialog("Tag:")
+                            selectedBookmark.tags.add(tagToAdd)
+                            panel.model.updateTags()
+                            panel.bookmarkOptions.updateTags()
+                        }
+                        existingTags -> {
+                            val tags = panel.model.tags.sorted().toTypedArray()
+                            val tagToAdd = JOptionPane.showInputDialog(
+                                null, "Select an existing tag:",
+                                "Tags", JOptionPane.QUESTION_MESSAGE, null, tags, null
+                            ) as String
+                            selectedBookmark.tags.add(tagToAdd)
+                            panel.model.updateTags()
+                            panel.bookmarkOptions.updateTags()
+                        }
                     }
-
                 }
             }
         }
