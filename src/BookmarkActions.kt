@@ -25,6 +25,7 @@ class BookmarkActions(
     private val addTag = JMenu("Add Tag")
     private val existingTags = JMenuItem("Existing Tags")
     private val newTag = JMenuItem("New Tag")
+    private val comments = JMenuItem("Add comment")
 
     init {
         sendToRepeater.addActionListener(this)
@@ -41,9 +42,12 @@ class BookmarkActions(
         actionsMenu.addSeparator()
         newTag.addActionListener(this)
         existingTags.addActionListener(this)
+        comments.addActionListener(this)
         addTag.add(newTag)
         addTag.add(existingTags)
         actionsMenu.add(addTag)
+        actionsMenu.addSeparator()
+        actionsMenu.add(comments)
         panel.table.componentPopupMenu = actionsMenu
     }
 
@@ -106,6 +110,11 @@ class BookmarkActions(
                             selectedBookmark.tags.add(tagToAdd)
                             panel.model.updateTags()
                             panel.bookmarkOptions.updateTags()
+                        }
+                        comments -> {
+                            val newComments = JOptionPane.showInputDialog("Comments:", selectedBookmark.comments)
+                            selectedBookmark.comments = newComments
+                            panel.model.refreshBookmarks()
                         }
                     }
                 }
