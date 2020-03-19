@@ -40,7 +40,8 @@ data class Bookmark(
 )
 
 class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
-    val model = BookmarksModel()
+    val bookmarkOptions = BookmarkOptions(this, callbacks)
+    val model = BookmarksModel(bookmarkOptions)
     val table = JTable(model)
 
     private val messageEditor = MessageEditor(callbacks)
@@ -49,7 +50,6 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
 
     val panel = JSplitPane(JSplitPane.VERTICAL_SPLIT)
     val bookmarks = model.bookmarks
-    val bookmarkOptions = BookmarkOptions(this, callbacks)
 
 
     private val repeatInTable = JCheckBox("Add repeated request to table")
@@ -144,7 +144,8 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         val protocol = requestInfo?.url?.protocol ?: ""
         val file = requestInfo?.url?.file ?: ""
         val parameters =
-            !requestInfo.parameters.filter { it.type != IParameter.PARAM_COOKIE }.isNullOrEmpty() || !requestInfo.url.query.isNullOrEmpty()
+            !requestInfo.parameters.filter { it.type != IParameter.PARAM_COOKIE }
+                .isNullOrEmpty() || !requestInfo.url.query.isNullOrEmpty()
         val comments = requestResponse.comment ?: ""
         val bookmark = Bookmark(
             savedRequestResponse,
@@ -216,7 +217,7 @@ class MessageEditor(callbacks: IBurpExtenderCallbacks) : IMessageEditorControlle
     override fun getHttpService(): IHttpService? = requestResponse?.httpService
 }
 
-class BookmarksModel : AbstractTableModel() {
+class BookmarksModel(private val bookmarkOptions: BookmarkOptions) : AbstractTableModel() {
     private val columns =
         listOf(
             "ID",
@@ -292,6 +293,24 @@ class BookmarksModel : AbstractTableModel() {
         }
     }
 
+    override fun isCellEditable(rowIndex: Int, columnIndex: Int): Boolean {
+        return when (columnIndex) {
+            5 -> true
+            14 -> true
+            else -> false
+        }
+    }
+
+    override fun setValueAt(value: Any?, rowIndex: Int, colIndex: Int) {
+        val bookmark: Bookmark = bookmarks[rowIndex]
+        when (colIndex) {
+            5 -> bookmark.tags.add(value.toString())
+            14 -> bookmark.comments = value.toString()
+            else -> return
+        }
+        refreshBookmarks()
+    }
+
     fun addBookmark(bookmark: Bookmark) {
         bookmarks.add(bookmark)
         displayedBookmarks = bookmarks
@@ -320,6 +339,7 @@ class BookmarksModel : AbstractTableModel() {
     fun updateTags() {
         val newTags = displayedBookmarks.flatMap { it.tags }.toSet().toList()
         tags = newTags
+        bookmarkOptions.updateTags()
     }
 
 }
