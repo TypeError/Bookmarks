@@ -304,7 +304,7 @@ class BookmarksModel(private val bookmarkOptions: BookmarkOptions) : AbstractTab
     override fun setValueAt(value: Any?, rowIndex: Int, colIndex: Int) {
         val bookmark: Bookmark = bookmarks[rowIndex]
         when (colIndex) {
-            5 -> bookmark.tags.add(value.toString())
+            5 -> bookmark.tags = value.toString().split(",").map { it.trim() }.toMutableSet()
             14 -> bookmark.comments = value.toString()
             else -> return
         }
