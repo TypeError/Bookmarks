@@ -9,6 +9,8 @@ import javax.swing.JMenu
 import javax.swing.JMenuItem
 import javax.swing.JOptionPane
 import javax.swing.JPopupMenu
+import javax.swing.event.MenuEvent
+import javax.swing.event.MenuListener
 
 class BookmarkActions(
     private val panel: BookmarksPanel,
@@ -23,7 +25,7 @@ class BookmarkActions(
     private val deleteMenu = JMenuItem("Delete Bookmark(s)")
     private val clearMenu = JMenuItem("Clear Bookmarks")
     private val addTag = JMenu("Add Tag")
-    private val existingTags = JMenuItem("Existing Tags")
+    private val existingTagsMenu = JMenu("Existing Tags")
     private val newTag = JMenuItem("New Tag")
     private val comments = JMenuItem("Add comment")
 
@@ -41,14 +43,15 @@ class BookmarkActions(
         actionsMenu.add(clearMenu)
         actionsMenu.addSeparator()
         newTag.addActionListener(this)
-        existingTags.addActionListener(this)
         comments.addActionListener(this)
         addTag.add(newTag)
-        addTag.add(existingTags)
+        existingTagsMenu.addMenuListener(UpdateTagMenu(this))
+        addTag.add(existingTagsMenu)
         actionsMenu.add(addTag)
         actionsMenu.addSeparator()
         actionsMenu.add(comments)
         panel.table.componentPopupMenu = actionsMenu
+
     }
 
 
@@ -71,16 +74,6 @@ class BookmarkActions(
             }
             newTag -> {
                 val tagToAdd = JOptionPane.showInputDialog("Tag:")
-                selectedBookmarks.forEach { it.tags.add(tagToAdd) }
-                panel.model.updateTags()
-                panel.bookmarkOptions.updateTags()
-            }
-            existingTags -> {
-                val tags = panel.model.tags.sorted().toTypedArray()
-                val tagToAdd = JOptionPane.showInputDialog(
-                    null, "Select an existing tag:",
-                    "Tags", JOptionPane.QUESTION_MESSAGE, null, tags, null
-                ) as String
                 selectedBookmarks.forEach { it.tags.add(tagToAdd) }
                 panel.model.updateTags()
                 panel.bookmarkOptions.updateTags()
@@ -122,7 +115,41 @@ class BookmarkActions(
         }
     }
 
-    private fun getSelectedBookmarks(): MutableList<Bookmark> {
+    class UpdateTagMenu(private val bookmarkActions: BookmarkActions) : MenuListener {
+        private val existingTagsMenu = bookmarkActions.existingTagsMenu
+        private val panel = bookmarkActions.panel
+
+        override fun menuSelected(me: MenuEvent) {
+            existingTagsMenu.removeAll()
+            val tags = panel.model.tags.sorted()
+            tags.forEach {
+                val menuItem = JMenuItem(it)
+                menuItem.addActionListener(TagsActionListener(bookmarkActions))
+                existingTagsMenu.add(menuItem)
+            }
+            existingTagsMenu.revalidate()
+            existingTagsMenu.repaint()
+            existingTagsMenu.doClick()
+        }
+
+        override fun menuCanceled(p0: MenuEvent?) {}
+
+        override fun menuDeselected(p0: MenuEvent?) {}
+    }
+
+    class TagsActionListener(bookmarkActions: BookmarkActions) : ActionListener {
+        private val selectedBookmarks = bookmarkActions.getSelectedBookmarks()
+        private val panel = bookmarkActions.panel
+        override fun actionPerformed(e: ActionEvent) {
+            val menuItem = e.source as JMenuItem
+            selectedBookmarks.forEach { it.tags.add(menuItem.text) }
+            panel.model.updateTags()
+            panel.bookmarkOptions.updateTags()
+        }
+
+    }
+
+    fun getSelectedBookmarks(): MutableList<Bookmark> {
         val selectedBookmarks: MutableList<Bookmark> = ArrayList()
         for (index in table.selectedRows) {
             selectedBookmarks.add(bookmarks[index])
