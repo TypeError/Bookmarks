@@ -69,6 +69,22 @@ class BookmarkActions(
                 val clipboard: Clipboard = Toolkit.getDefaultToolkit().systemClipboard
                 clipboard.setContents(StringSelection(urls), null)
             }
+            newTag -> {
+                val tagToAdd = JOptionPane.showInputDialog("Tag:")
+                selectedBookmarks.forEach { it.tags.add(tagToAdd) }
+                panel.model.updateTags()
+                panel.bookmarkOptions.updateTags()
+            }
+            existingTags -> {
+                val tags = panel.model.tags.sorted().toTypedArray()
+                val tagToAdd = JOptionPane.showInputDialog(
+                    null, "Select an existing tag:",
+                    "Tags", JOptionPane.QUESTION_MESSAGE, null, tags, null
+                ) as String
+                selectedBookmarks.forEach { it.tags.add(tagToAdd) }
+                panel.model.updateTags()
+                panel.bookmarkOptions.updateTags()
+            }
             else -> {
                 for (selectedBookmark in selectedBookmarks) {
                     val https = useHTTPs(selectedBookmark)
@@ -94,22 +110,6 @@ class BookmarkActions(
                                 url.host, url.port, https,
                                 selectedBookmark.requestResponse.request, null
                             )
-                        }
-                        newTag -> {
-                            val tagToAdd = JOptionPane.showInputDialog("Tag:")
-                            selectedBookmark.tags.add(tagToAdd)
-                            panel.model.updateTags()
-                            panel.bookmarkOptions.updateTags()
-                        }
-                        existingTags -> {
-                            val tags = panel.model.tags.sorted().toTypedArray()
-                            val tagToAdd = JOptionPane.showInputDialog(
-                                null, "Select an existing tag:",
-                                "Tags", JOptionPane.QUESTION_MESSAGE, null, tags, null
-                            ) as String
-                            selectedBookmark.tags.add(tagToAdd)
-                            panel.model.updateTags()
-                            panel.bookmarkOptions.updateTags()
                         }
                         comments -> {
                             val newComments = JOptionPane.showInputDialog("Comments:", selectedBookmark.comments)
