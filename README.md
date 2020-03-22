@@ -13,8 +13,8 @@ You can find [Bookmarks](https://portswigger.net/bappstore/ef6d970f0d11452ea0246
 * Send to Repeater with tabs labeled with response titles
 * Load highlighted requests from existing Proxy History
 * Search bookmarks
-* Tags (Not yet on BApp Store)
-* Comments (Not yet on BApp Store)
+* Tags
+* Comments
 
 ![Bookmarks](/images/bookmarks.png)
 
