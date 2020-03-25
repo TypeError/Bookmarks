@@ -67,14 +67,17 @@ class BookmarkOptions(
         }
     }
 
-    private fun searchBookmarks() {
+    fun searchBookmarks() {
+        val selectedTag = tagComboBox.selectedItem
         SwingUtilities.invokeLater {
             val searchText = searchBar.text.toLowerCase()
             var filteredBookmarks = this.bookmarksPanel.bookmarks
+            filteredBookmarks = filterTags(filteredBookmarks)
             if (searchText.isNotEmpty()) {
                 filteredBookmarks = filteredBookmarks
                     .filter {
-                        it.url.toString().toLowerCase().contains(searchText) ||
+                        it.comments.toLowerCase().contains(searchText) ||
+                                it.url.toString().toLowerCase().contains(searchText) ||
                                 callbacks.helpers.bytesToString(it.requestResponse.request).toLowerCase().contains(
                                     searchText
                                 ) ||
@@ -85,8 +88,10 @@ class BookmarkOptions(
                                 )
                     }.toMutableList()
             }
-            filteredBookmarks = filterTags(filteredBookmarks)
             bookmarksPanel.model.refreshBookmarks(filteredBookmarks)
+            if (selectedTag != "Tags") {
+                tagComboBox.selectedItem = selectedTag
+            }
             rowSelection()
         }
     }
