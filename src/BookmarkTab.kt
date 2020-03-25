@@ -314,19 +314,17 @@ class BookmarksModel(private val bookmarkOptions: BookmarkOptions) : AbstractTab
     fun addBookmark(bookmark: Bookmark) {
         bookmarks.add(bookmark)
         displayedBookmarks = bookmarks
-        updateTags()
+        refreshBookmarks()
         fireTableRowsInserted(displayedBookmarks.lastIndex, displayedBookmarks.lastIndex)
     }
 
     fun removeBookmarks(selectedBookmarks: MutableList<Bookmark>) {
         bookmarks.removeAll(selectedBookmarks)
-        updateTags()
         refreshBookmarks()
     }
 
     fun clearBookmarks() {
         bookmarks.clear()
-        updateTags()
         refreshBookmarks()
     }
 
