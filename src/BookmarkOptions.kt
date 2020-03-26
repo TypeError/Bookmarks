@@ -20,8 +20,8 @@ class BookmarkOptions(
         val searchButton = JButton("Search")
         val resetButton = JButton("Reset")
         tagComboBox.selectedIndex = -1
-        tagComboBox.prototypeDisplayValue = "railroad"
-        tagComboBox.addItem("Tags")
+        tagComboBox.prototypeDisplayValue = "Select tag"
+        tagComboBox.addItem("Select tag")
         loadButton.addActionListener { loadHighlightedRequests() }
         clearButton.addActionListener { clearBookmarks() }
         searchBar.addActionListener { searchBookmarks() }
@@ -89,7 +89,7 @@ class BookmarkOptions(
                     }.toMutableList()
             }
             bookmarksPanel.model.refreshBookmarks(filteredBookmarks)
-            if (selectedTag != "Tags") {
+            if (selectedTag != "Select tag") {
                 tagComboBox.selectedItem = selectedTag
             }
             rowSelection()
@@ -97,7 +97,7 @@ class BookmarkOptions(
     }
 
     private fun filterTags(bookmarks: MutableList<Bookmark>): MutableList<Bookmark> {
-        return if (tagComboBox.selectedItem != "Tags" || tagComboBox.selectedItem == null) {
+        return if (tagComboBox.selectedItem != "Select tag" || tagComboBox.selectedItem == null) {
             val tag = tagComboBox.selectedItem
             bookmarks
                 .filter {
@@ -133,7 +133,7 @@ class BookmarkOptions(
 
     fun updateTags() {
         tagComboBox.removeAllItems()
-        tagComboBox.addItem("Tags")
+        tagComboBox.addItem("Select tag")
         for (tag in bookmarksPanel.model.tags.sorted()) {
             tagComboBox.addItem(tag)
         }
