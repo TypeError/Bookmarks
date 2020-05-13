@@ -74,6 +74,7 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         table.columnModel.getColumn(14).preferredWidth = 120 // comments
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
         table.rowSorter = TableRowSorter(model)
+        table.autoscrolls = true
 
         table.selectionModel.addListSelectionListener {
             if (table.selectedRow != -1) {
@@ -314,8 +315,8 @@ class BookmarksModel(private val bookmarkOptions: BookmarkOptions) : AbstractTab
     fun addBookmark(bookmark: Bookmark) {
         bookmarks.add(bookmark)
         displayedBookmarks = bookmarks
-        refreshBookmarks()
         fireTableRowsInserted(displayedBookmarks.lastIndex, displayedBookmarks.lastIndex)
+        refreshBookmarks()
     }
 
     fun removeBookmarks(selectedBookmarks: MutableList<Bookmark>) {
