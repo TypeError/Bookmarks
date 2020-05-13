@@ -9,32 +9,32 @@ class BookmarkOptions(
 ) {
     val panel = JSplitPane(JSplitPane.HORIZONTAL_SPLIT)
     private val loadPanel = JPanel(FlowLayout(FlowLayout.RIGHT))
-    private val searchBar = JTextField("", 20)
-    private val searchPanel = JPanel(FlowLayout(FlowLayout.LEFT))
+    private val filterBar = JTextField("", 20)
+    private val filterPanel = JPanel(FlowLayout(FlowLayout.LEFT))
     private val tagComboBox = JComboBox(arrayOf<String>())
 
     init {
         val loadButton = JButton("Load Highlighted Proxy History")
         val clearButton = JButton("Clear Bookmarks")
-        val searchLabel = JLabel("Search Bookmarks:")
-        val searchButton = JButton("Search")
+        val filterLabel = JLabel("Filter Bookmarks:")
+        val filterButton = JButton("Filter")
         val resetButton = JButton("Reset")
         tagComboBox.selectedIndex = -1
         tagComboBox.prototypeDisplayValue = "Select tag"
         tagComboBox.addItem("Select tag")
         loadButton.addActionListener { loadHighlightedRequests() }
         clearButton.addActionListener { clearBookmarks() }
-        searchBar.addActionListener { searchBookmarks() }
-        searchButton.addActionListener { searchBookmarks() }
+        filterBar.addActionListener { searchBookmarks() }
+        filterButton.addActionListener { searchBookmarks() }
         resetButton.addActionListener { resetSearch() }
-        searchPanel.add(searchLabel)
-        searchPanel.add(searchBar)
-        searchPanel.add(tagComboBox)
-        searchPanel.add(searchButton)
-        searchPanel.add(resetButton)
+        filterPanel.add(filterLabel)
+        filterPanel.add(filterBar)
+        filterPanel.add(tagComboBox)
+        filterPanel.add(filterButton)
+        filterPanel.add(resetButton)
         loadPanel.add(clearButton)
         loadPanel.add(loadButton)
-        panel.leftComponent = searchPanel
+        panel.leftComponent = filterPanel
         panel.rightComponent = loadPanel
         panel.dividerSize = 0
     }
@@ -70,7 +70,7 @@ class BookmarkOptions(
     fun searchBookmarks() {
         val selectedTag = tagComboBox.selectedItem
         SwingUtilities.invokeLater {
-            val searchText = searchBar.text.toLowerCase()
+            val searchText = filterBar.text.toLowerCase()
             var filteredBookmarks = this.bookmarksPanel.bookmarks
             filteredBookmarks = filterTags(filteredBookmarks)
             if (searchText.isNotEmpty()) {
@@ -109,7 +109,7 @@ class BookmarkOptions(
     }
 
     private fun resetSearch() {
-        searchBar.text = ""
+        filterBar.text = ""
         bookmarksPanel.model.refreshBookmarks()
         rowSelection()
         updateTags()
