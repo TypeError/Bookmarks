@@ -92,7 +92,6 @@ class BookmarkOptions(
             if (selectedTag != "Select tag") {
                 tagComboBox.selectedItem = selectedTag
             }
-            rowSelection()
         }
     }
 
@@ -111,7 +110,6 @@ class BookmarkOptions(
     private fun resetSearch() {
         filterBar.text = ""
         bookmarksPanel.model.refreshBookmarks()
-        rowSelection()
         updateTags()
     }
 
@@ -119,16 +117,6 @@ class BookmarkOptions(
         bookmarksPanel.model.clearBookmarks()
         bookmarksPanel.requestViewer?.setMessage(ByteArray(0), true)
         bookmarksPanel.responseViewer?.setMessage(ByteArray(0), false)
-    }
-
-    private fun rowSelection() {
-        val rowCount = bookmarksPanel.table.rowCount
-        if (rowCount != -1) {
-            bookmarksPanel.table.setRowSelectionInterval(rowCount - 1, rowCount - 1)
-        } else {
-            bookmarksPanel.requestViewer?.setMessage(ByteArray(0), true)
-            bookmarksPanel.responseViewer?.setMessage(ByteArray(0), false)
-        }
     }
 
     fun updateTags() {
