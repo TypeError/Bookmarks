@@ -50,12 +50,13 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
 
     val panel = JSplitPane(JSplitPane.VERTICAL_SPLIT)
     val bookmarks = model.bookmarks
+    val rowSorter = TableRowSorter(model)
 
 
     private val repeatInTable = JCheckBox("Add repeated request to table")
 
     init {
-        BookmarkActions(this, bookmarks, callbacks)
+        BookmarkActions(this, callbacks)
         table.autoResizeMode = JTable.AUTO_RESIZE_OFF
         table.columnModel.getColumn(0).preferredWidth = 30 // ID
         table.columnModel.getColumn(1).preferredWidth = 145 // date
@@ -73,7 +74,7 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         table.columnModel.getColumn(13).preferredWidth = 80 // file
         table.columnModel.getColumn(14).preferredWidth = 120 // comments
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
-        table.rowSorter = TableRowSorter(model)
+        table.rowSorter = rowSorter
         table.autoscrolls = true
 
         table.selectionModel.addListSelectionListener {
@@ -169,11 +170,6 @@ class BookmarksPanel(private val callbacks: IBurpExtenderCallbacks) {
         model.addBookmark(bookmark)
         if (proxyHistory) {
             requestResponse.highlight = "magenta"
-        }
-
-        SwingUtilities.invokeLater {
-            table.scrollRectToVisible(table.getCellRect(table.rowCount - 1, 0, true))
-            table.setRowSelectionInterval(table.rowCount - 1, table.rowCount - 1)
         }
     }
 
