@@ -14,7 +14,6 @@ import javax.swing.event.MenuListener
 
 class BookmarkActions(
     private val panel: BookmarksPanel,
-    private val bookmarks: MutableList<Bookmark>,
     private val callbacks: IBurpExtenderCallbacks
 ) : ActionListener {
     private val table = panel.table
@@ -88,7 +87,7 @@ class BookmarkActions(
                             if (title.length > 10) {
                                 title = title.substring(0, 9) + "+"
                             } else if (title.isBlank()) {
-                                title = "[^](${bookmarks.indexOf(selectedBookmark)}"
+                                title = "[^](${panel.bookmarks.indexOf(selectedBookmark)}"
                             }
                             callbacks.sendToRepeater(
                                 url.host,
@@ -152,7 +151,8 @@ class BookmarkActions(
     fun getSelectedBookmarks(): MutableList<Bookmark> {
         val selectedBookmarks: MutableList<Bookmark> = ArrayList()
         for (index in table.selectedRows) {
-            selectedBookmarks.add(bookmarks[index])
+            val row = panel.rowSorter.convertRowIndexToModel(index)
+            selectedBookmarks.add(panel.model.displayedBookmarks[row])
         }
         return selectedBookmarks
     }
